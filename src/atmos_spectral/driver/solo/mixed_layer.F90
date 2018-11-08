@@ -83,6 +83,7 @@ real    :: tconst = 305.0
 real    :: delta_T = 40.0
 logical :: prescribe_initial_dist = .false.
 real    :: albedo_value    = 0.06
+real    :: crit_temp = 270.
 
 !s Surface heat capacity options
 real    :: depth           = 40.0,         & !s 2013 implementation
@@ -102,7 +103,7 @@ real    :: depth           = 40.0,         & !s 2013 implementation
 real    :: land_albedo_prefactor = 1.0 !s where(land) albedo = land_albedo_prefactor * albedo_value
 
 !s Begin mj extra options
-integer :: albedo_choice    = 1 ! 1->constant or following 'where(land)', 2->NH or SH step, 3->N-S symmetric step, 4->profile with albedo_exp, 5->tanh with albedo_cntr,albedo_wdth
+integer :: albedo_choice    = 1 ! 1->constant or following 'where(land)', 2->NH or SH step, 3->N-S symmetric step, 4->profile with albedo_exp, 5->tanh with albedo_cntr,albedo_wdth, 6->Feldl et.al. 2017 case (added by Alexandre Audette)
 logical :: do_qflux         = .false. !mj
 logical :: do_warmpool      = .false. !mj
 logical :: do_read_sst      = .false. !mj
@@ -464,6 +465,17 @@ select case (albedo_choice)
         albedo(:,j) = albedo_value + (higher_albedo-albedo_value)*&
              0.5*(1+tanh((lat-albedo_cntr)/albedo_wdth))
      enddo
+  case (6) !(Audette) From (Feldl et.al. 2017) Surface Temp dependent albedo
+  crit_temp = 270.0
+     do j = 1, size(t_surf,2)
+       do i = 1, size (t_surf,1)
+         if ((crit_temp - t_surf(i,j)).lt.1.d-3) then
+           albedo(i,j) = higher_albedo
+         else
+           albedo(i,j) = albedo_value
+         endif
+       enddo
+     enddo  
 end select
 
 albedo_initial=albedo
